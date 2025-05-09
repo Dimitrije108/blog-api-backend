@@ -22,3 +22,6 @@ coverage/
 # Uploads/Temp
 uploads/
 temp/
+
+# Database
+generated/prisma/
