@@ -48,7 +48,7 @@ const deleteCategory = asyncHandler(async (req, res) => {
 	res.json(deleteCategory);
 });
 
-const getAllArticles = asyncHandler(async (req, res) => {
+const getAllCategoryArticles = asyncHandler(async (req, res) => {
 	const articles = await prisma.article.findMany({
 		where: {
 			categoryId: req.params.categoryId,
@@ -62,5 +62,5 @@ module.exports = {
 	createCategory,
 	updateCategory,
 	deleteCategory,
-	getAllArticles,
+	getAllCategoryArticles,
 };
