@@ -1,33 +1,20 @@
 const { Router } = require('express');
 const router = Router();
-// TODO: add authentication and authorization 
-router.get('/', (req, res) => {
-	// return all users
-});
+const controller = require('../../controllers/user');
 
-router.post('/', (req, res) => {
-	// create user
-});
-
-router.get('/:userId', (req, res) => {
-	// return user
-});
-
-router.put('/:userId', (req, res) => {
-	// update user
-});
-
-router.delete('/:userId', (req, res) => {
-	// delete user
-});
-
-router.get('/:userId/articles', (req, res) => {
-	// return all user articles
-	// maybe check if they are author and then have a custom response
-});
-
-router.get('/:userId/comments', (req, res) => {
-	// return all user comments
-});
+// Get all users
+router.get('/', controller.getAllUsers);
+// Create user
+router.post('/', controller.createUser);
+// Get user
+router.get('/:userId', controller.getUser);
+// Update user
+router.put('/:userId', controller.updateUser);
+// Delete user
+router.delete('/:userId', controller.deleteUser);
+// Get all user articles
+router.get('/:userId/articles', controller.getAllUserArticles);
+// Get all user comments
+router.get('/:userId/comments', controller.getAllUserComments);
 
 module.exports = router;
