@@ -1,14 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
-
-const indexRouter = require('./routes/indexRouter');
+const router = require('./api/v1/routes');
 
 // Parse form data into req.body
 app.use(express.urlencoded({ extended: true }));
 
 // Setup routes
-app.use('/', indexRouter);
+app.use('/auth', router.auth);
+app.use('/users', router.user);
+app.use('/articles', router.article);
+app.use('/categories', router.category);
 
 const PORT = process.env.PORT || 3000;
 
