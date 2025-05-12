@@ -1,25 +1,16 @@
 const { Router } = require('express');
 const router = Router();
-// TODO: add authentication and authorization 
-// This is accessible to public
-router.get('/', (req, res) => {
-	// return all categories
-});
+const controller = require('../../controllers/category');
 
-router.post('/', (req, res) => {
-	// create category
-});
-
-router.put('/:categoryId', (req, res) => {
-	// update category
-});
-
-router.delete('/:categoryId', (req, res) => {
-	// delete category
-});
-// This is accessible to public
-router.get('/:categoryId/articles', (req, res) => {
-	// return all articles from the given category
-});
+// Get all categories
+router.get('/', controller.getAllCategories);
+// Create category
+router.post('/', controller.createCategory);
+// Update category
+router.put('/:categoryId', controller.updateCategory);
+// Delete category
+router.delete('/:categoryId', controller.deleteCategory);
+// Get all category articles
+router.get('/:categoryId/articles', controller.getAllArticles);
 
 module.exports = router;
