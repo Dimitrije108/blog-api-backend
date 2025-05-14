@@ -67,7 +67,7 @@ const register = [
 			}
 		});
 
-		res.status(201).json({ message: 'Userr registered successfully' });
+		res.status(201).json({ message: 'User registered successfully' });
 	})
 ];
 
@@ -91,19 +91,14 @@ const login = [
 				const accessToken = generateAccessToken(user);
 				const refreshToken = generateRefreshToken(user);
 
-				res.json({ accessToken });
-				res.cookie('refreshToken', refreshToken, {
-					httpOnly: true,
-					secure: process.env.NODE_ENV === 'production',
-					maxAge: 7 * 24 * 60 * 60 * 1000,
-				});
+				res.json({ accessToken, refreshToken });
 			}
 		)(req, res, next);
 	}
 ];
 
 const refreshToken = (req, res) => {
-	const refreshToken = req.cookies.refreshToken;
+	const refreshToken = req.body.refreshToken;
 
 	if (!refreshToken) {
 		return res.status(403).json({ message: 'No refresh token provided' });
@@ -124,32 +119,17 @@ const refreshToken = (req, res) => {
 			if (!user) {
 				return res.status(403).json({ message: 'User not found' });
 			};
+			// Create new tokens
+			const accessToken = generateAccessToken(user);
+			const refreshToken = generateRefreshToken(user);
 
-			const newAccessToken = generateAccessToken(user);
-			const newRefreshToken = generateRefreshToken(user);
-
-			res.json({ accessToken: newAccessToken });
-			res.cookie('refreshToken', newRefreshToken, {
-					httpOnly: true,
-					secure: process.env.NODE_ENV === 'production',
-					maxAge: 7 * 24 * 60 * 60 * 1000,
-				});
+			res.json({ accessToken, refreshToken });
 		}
 	);
-};
-
-const logout = (req, res) => {
-	res.clearCookie('refreshToken', {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === 'production',
-		sameSite: 'Strict',
-	});
-	res.status(200).json({ message: 'Logged out successfully' });
 };
 
 module.exports = {
 	register,
 	login,
 	refreshToken,
-	logout,
 };
