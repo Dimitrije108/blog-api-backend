@@ -1,5 +1,5 @@
 const asyncHandler = require('express-async-handler');
-const { PrismaClient } = require('../generated/prisma');
+const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
 
 // TODO:
@@ -24,7 +24,7 @@ const createArticle = asyncHandler(async (req, res) => {
 	// from req.body?
 	// publish should be a select box, true/false
 
-	// MAKE SURE USER AND ID 1 EXIST BEFORE CALLING
+	// MAKE SURE USER AND CATEGORY ID 1 EXIST BEFORE CALLING
 
 	const article = await prisma.article.create({
 		data: {
