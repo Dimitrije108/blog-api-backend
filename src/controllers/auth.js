@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const validateRegister = [
-	body('name').trim()
+	body('username').trim()
 		.isAlpha().withMessage('Name must only contain letters.')
 		.isLength({ min: 1, max: 30 }).withMessage('Name must be between 1 and 30 characters.'),
 	body('email').normalizeEmail()
@@ -112,13 +112,9 @@ const refreshToken = (req, res) => {
 				return res.status(403).json({ message: 'Invalid or expired refresh token' });
 			}
 
-			const user = await prisma.user.findUnique({
+			const user = await prisma.user.findUniqueOrThrow({
 				where: { id: payload.id },
 			});
-
-			if (!user) {
-				return res.status(403).json({ message: 'User not found' });
-			};
 			// Create new tokens
 			const accessToken = generateAccessToken(user);
 			const refreshToken = generateRefreshToken(user);

@@ -2,27 +2,30 @@ const asyncHandler = require('express-async-handler');
 const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
 const { authUser, authAuthor } = require('../middleware/auth');
-const ValidationError = require('../errors/ValidationError');
-const NotFoundError = require('../errors/NotFoundError');
+const validateId = require('../utils/validateId');
 
 // TODO:
 // sanitize and validate form values
-// implement custom error handling?
-
-// Check if param id is valid
-const validateId = (id, param) => {
-	const checkId = Number(id);
-	if (isNaN(checkId)) {
-		throw new ValidationError(`Invalid ${param} ID format`);
-	}
-	return checkId;
-};
 
 // Articles
+// Get all published articles by default
 const getAllArticles = asyncHandler(async (req, res) => {
+	const { published } = req.query;
+	// Unpublished articles require authorization check
+	if (published === 'false' && !req.user?.author) {
+		return res.status(403).json({ message: "Forbidden access: Authors only"});
+	};
+
 	const articles = await prisma.article.findMany({
 		where: {
-			published: true,
+			published: published === 'false' ? false : true
+		},
+		include: {
+			user: {
+				select: {
+					username: true
+				}
+			}
 		}
 	});
 
@@ -34,20 +37,18 @@ const createArticle = [
 	authAuthor,
 	asyncHandler(async (req, res) => {
 		// sanitize and validate form values
-		// get article data from req.body
-		// publish should be a select box, true/false
-
 		// MAKE SURE USER AND CATEGORY ID 1 EXIST BEFORE CALLING
 
-		// check if category exists before creating an article
+		const { title, text, categoryId } = req.body;
+		const publish = req.body.publish === 'on' ? true : false;
 
 		const article = await prisma.article.create({
 			data: {
-				title: 'Early Roman Archaeology on Serbian Limes',
-				text: 'This is just example text from article that will be published',
-				published: true,
-				userId: 1,
-				categoryId: 1,
+				title,
+				text,
+				published: publish,
+				userId: req.user.id,
+				categoryId,
 			}
 		});
 
@@ -58,15 +59,18 @@ const createArticle = [
 const getArticle = asyncHandler(async (req, res) => {
 	const articleId = validateId(req.params.articleId, 'article');
 
-	const article = await prisma.article.findUnique({
+	const article = await prisma.article.findUniqueOrThrow({
 		where: {
-			id: articleId,
+			id: articleId
+		},
+		include: {
+			user: {
+				select: {
+					username: true,
+				}
+			}
 		}
 	});
-
-	if (!article) {
-		throw new NotFoundError('Article');
-	}
 
 	res.status(200).json(article);
 });
@@ -76,32 +80,37 @@ const updateArticle = [
 	authAuthor,
 	asyncHandler(async (req, res) => {
 		// sanitize and validate form values
-		// extract data from req.body and pass it on
 		const articleId = validateId(req.params.articleId, 'article');
-		
-		const article = await prisma.article.findUnique({
+
+		const article = await prisma.article.findUniqueOrThrow({
 			where: {
-				id: articleId,
+				id: articleId
+			},
+			select: {
+				userId: true
 			}
 		});
-		// Check if article exists
-		if (!article) {
-			throw new NotFoundError('Article');
+		// Check if user updating the article is the one who created it
+		if (article.userId !== req.user.id) {
+			return res.status(403).json({ message: 'Forbidden: You can only update your own articles' })
 		};
 
-		const updateArticle = await prisma.article.update({
+		const { title, text, categoryId } = req.body;
+		const publish = req.body.publish === 'on' ? true : false;
+
+		const updatedArticle = await prisma.article.update({
 			where: {
-				id: articleId,
+				id: articleId
 			},
 			data: {
-				title: 'Early Roman Archaeology on Serbian Limes',
-				text: 'This is just example text from article that is now updated!',
-				published: true,
-				categoryId: 1,
+				title,
+				text,
+				published: publish,
+				categoryId,
 			}
 		});
 
-		res.status(200).json(updateArticle);
+		res.status(200).json(updatedArticle);
 	}
 )];
 
@@ -111,19 +120,22 @@ const deleteArticle = [
 	asyncHandler(async (req, res) => {
 		const articleId = validateId(req.params.articleId, 'article');
 
-		const article = await prisma.article.findUnique({
+		const article = await prisma.article.findUniqueOrThrow({
 			where: {
-				id: articleId,
+				id: articleId
+			},
+			select: {
+				userId: true
 			}
 		});
-		// Check if article exists
-		if (!article) {
-			throw new NotFoundError('Article');
+		// Check if user deleting the article is the one who created it
+		if (article.userId !== req.user.id) {
+			return res.status(403).json({ message: 'Forbidden: You can only delete your own articles' })
 		};
 
 		const deleteArticle = await prisma.article.delete({
 			where: {
-				id: articleId,
+				id: articleId
 			}
 		});
 
@@ -136,7 +148,15 @@ const getAllComments = asyncHandler(async (req, res) => {
 
 	const comments = await prisma.comment.findMany({
 		where: {
-			articleId: articleId,
+			articleId: articleId
+		},
+		include: {
+			user: {
+				select: {
+					username: true,
+					author: true,
+				}
+			}
 		}
 	});
 
@@ -146,13 +166,16 @@ const getAllComments = asyncHandler(async (req, res) => {
 const createComment = [
 	authUser,
 	asyncHandler(async (req, res) => {
-		// verify article exists before creating a comment
+		// sanitize and validate
+		const articleId = validateId(req.params.articleId, 'article');
+
+		const { text } = req.body;
 
 		const comment = await prisma.comment.create({
 			data: {
-				text: 'hello there! user comment here',
-				userId: 1,
-				articleId: 1,
+				text,
+				userId: req.user.id,
+				articleId,
 			}
 		});
 
@@ -163,15 +186,19 @@ const createComment = [
 const getComment = asyncHandler(async (req, res) => {
 	const commentId = validateId(req.params.commentId, 'comment');
 
-	const comment = await prisma.comment.findUnique({
+	const comment = await prisma.comment.findUniqueOrThrow({
 		where: {
-			id: commentId,
+			id: commentId
+		},
+		include: {
+			user: {
+				select: {
+					username: true,
+					author: true,
+				}
+			}
 		}
 	});
-	// Check if comment exists
-	if (!comment) {
-		throw new NotFoundError('Comment');
-	}
 
 	res.status(200).json(comment);
 });
@@ -179,33 +206,31 @@ const getComment = asyncHandler(async (req, res) => {
 const updateComment = [
 	authUser,
 	asyncHandler(async (req, res) => {
+		// sanitize and validate
 		const commentId = validateId(req.params.commentId, 'comment');
-		const userId = validateId(req.user.id, 'user');
-		// Find user comment
-		const comment = await prisma.comment.findUnique({
+		
+		const comment = await prisma.comment.findUniqueOrThrow({
 			where: {
-				id: commentId,
+				id: commentId
 			}
 		});
-		// Check if comment exists
-		if (!comment) {
-			throw new NotFoundError('Comment');
-		}
-		// Check if user updating the comment is the one that created it
-		if (comment.userId !== userId) {
+		// Check if user updating the comment is the one who created it
+		if (comment.userId !== req.user.id) {
 			return res.status(403).json({ message: 'Forbidden: You can only edit your own comments' })
-		}
+		};
+
+		const { text } = req.body;
 		
-		const updateComment = await prisma.comment.update({
+		const updatedComment = await prisma.comment.update({
 			where: {
-				id: commentId,
+				id: commentId
 			},
 			data: {
-				text: 'hello again! soooo this was just updated...',
+				text
 			}
 		});
 
-		res.status(200).json(updateComment);
+		res.status(200).json(updatedComment);
 	}
 )];
 
@@ -214,14 +239,14 @@ const deleteComment = [
 	asyncHandler(async (req, res) => {
 		const commentId = validateId(req.params.commentId, 'comment');
 
-		const comment = await prisma.comment.findUnique({
+		const comment = await prisma.comment.findUniqueOrThrow({
 			where: {
-				id: commentId,
+				id: commentId
 			}
 		});
-		// Check if comment exists
-		if (!comment) {
-			throw new NotFoundError('Comment');
+		// Check if user deleting the comment is the one who created it
+		if (comment.userId !== req.user.id) {
+			return res.status(403).json({ message: 'Forbidden: You can only delete your own comments' })
 		};
 
 		const deleteComment = await prisma.comment.delete({

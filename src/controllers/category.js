@@ -1,60 +1,102 @@
 const asyncHandler = require('express-async-handler');
 const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
+const { authUser, authAuthor } = require('../middleware/auth');
+const validateId = require('../utils/validateId');
 
 // TODO: 
-// add authentication and authorization
-// convert req.params.? into integer
-// implement custom error handling?
+// implement form validation
 
 const getAllCategories = asyncHandler(async (req, res) => {
 	const categories = await prisma.category.findMany();
-	res.json(categories);
+	res.status(200).json(categories);
 });
 
-const createCategory = asyncHandler(async (req, res) => {
-	// This needs user authorization
-	// sanitize andauthenticate received data first
-	// get data from req.body
+const createCategory = [
+	authUser,
+	authAuthor,
+	asyncHandler(async (req, res) => {
+		// sanitize and validate
 
-	const category = await prisma.category.create({
-		data: {
-			name: 'Roman',
-		}
-	});
-	res.json(category);
-});
+		const { name } = req.body;
 
-const updateCategory = asyncHandler(async (req, res) => {
-	// This needs user authorization
-	const updateCategory = await prisma.category.update({
-		where: {
-			id: req.params.categoryId,
-		},
-		data: {
-			name: 'Roman - updated',
-		}
-	});
-	res.json(updateCategory);
-});
+		const category = await prisma.category.create({
+			data: {
+				name
+			}
+		});
 
-const deleteCategory = asyncHandler(async (req, res) => {
-	// This needs user authorization
-	const deleteCategory = await prisma.category.delete({
-		where: {
-			id: req.params.categoryId,
-		}
-	});
-	res.json(deleteCategory);
-});
+		res.status(201).json(category);
+	}
+)];
+
+const updateCategory = [
+	authUser,
+	authAuthor,
+	asyncHandler(async (req, res) => {
+		// sanitize and validate input
+
+		const categoryId = validateId(req.params.categoryId, 'category');
+
+		const { name } = req.body;
+
+		const updatedCategory = await prisma.category.update({
+			where: {
+				id: categoryId
+			},
+			data: {
+				name
+			}
+		});
+
+		res.status(200).json(updatedCategory);
+	}
+)];
+
+const deleteCategory = [
+	authUser,
+	authAuthor,
+	asyncHandler(async (req, res) => {
+		const categoryId = validateId(req.params.categoryId, 'category');
+
+		const articleCount = await prisma.article.count({
+			where: {
+				categoryId
+			}
+		});
+
+		if (articleCount > 0) {
+			return res.status(400).json({ message: 'Cannot delete category: It has articles assigned to it' })
+		};
+
+		const deletedCategory = await prisma.category.delete({
+			where: {
+				id: categoryId,
+			}
+		});
+
+		res.status(200).json(deletedCategory);
+	}
+)];
 
 const getAllCategoryArticles = asyncHandler(async (req, res) => {
+	const categoryId = validateId(req.params.categoryId, 'category');
+
 	const articles = await prisma.article.findMany({
 		where: {
-			categoryId: req.params.categoryId,
+			categoryId: categoryId,
+			published: true
+		},
+		include: {
+			user: {
+				select: {
+					username: true
+				}
+			}
 		}
 	});
-	res.json(articles);
+
+	res.status(200).json(articles);
 });
 
 module.exports = {
