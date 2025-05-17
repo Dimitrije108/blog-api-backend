@@ -3,10 +3,10 @@ const passport = require('passport');
 const authUser = passport.authenticate('jwt', { session: false });
 
 const authAuthor = (req, res, next) => {
-	if (req.user && req.user.author) {
+	if (req.user?.author) {
 		return next();
 	}
-	res.status(403).json({ message: "Forbiden access: Authors only"});
+	return res.status(403).json({ message: "Forbiden access: Authors only"});
 };
 
 module.exports = {
