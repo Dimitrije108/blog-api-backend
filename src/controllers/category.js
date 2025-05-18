@@ -3,9 +3,8 @@ const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
 const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
-
-// TODO: 
-// implement form validation
+const { validateCategory } = require('../middleware/validation');
+const validationErrorHandler = require('../middleware/validationErrorHandler');
 
 const getAllCategories = asyncHandler(async (req, res) => {
 	const categories = await prisma.category.findMany();
@@ -15,15 +14,15 @@ const getAllCategories = asyncHandler(async (req, res) => {
 const createCategory = [
 	authUser,
 	authAuthor,
+	validateCategory,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// sanitize and validate
-
 		const { name } = req.body;
 
 		const category = await prisma.category.create({
 			data: {
 				name
-			}
+			}	
 		});
 
 		res.status(201).json(category);
@@ -33,9 +32,9 @@ const createCategory = [
 const updateCategory = [
 	authUser,
 	authAuthor,
+	validateCategory,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// sanitize and validate input
-
 		const categoryId = validateId(req.params.categoryId, 'category');
 
 		const { name } = req.body;
@@ -64,7 +63,7 @@ const deleteCategory = [
 				categoryId
 			}
 		});
-
+		// Check if category has articles assigned
 		if (articleCount > 0) {
 			return res.status(400).json({ message: 'Cannot delete category: It has articles assigned to it' })
 		};
@@ -84,7 +83,7 @@ const getAllCategoryArticles = asyncHandler(async (req, res) => {
 
 	const articles = await prisma.article.findMany({
 		where: {
-			categoryId: categoryId,
+			categoryId,
 			published: true
 		},
 		include: {

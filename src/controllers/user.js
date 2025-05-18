@@ -4,9 +4,8 @@ const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
-
-// TODO: 
-// form field sanitization and validation
+const { validateRegister } = require('../middleware/validation');
+const validationErrorHandler = require('../middleware/validationErrorHandler');
 
 const userSelect = {
 	id: true,
@@ -25,15 +24,17 @@ const getAllUsers = asyncHandler(async (req, res) => {
 const createUser = [
 	authUser,
 	authAuthor,
+	validateRegister,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// validate and sanitize data
+		const { username, email } = req.body;
 		const hashedPass = await bcrypt.hash(req.body.password, 10);
 		const author = req.body.author === 'on' ? true : false;
 
 		const user = await prisma.user.create({
 			data: {
-				email: req.body.email,
-				username: req.body.username,
+				email,
+				username,
 				password: hashedPass,
 				author,
 			},
@@ -58,10 +59,12 @@ const getUser = asyncHandler(async (req, res) => {
 const updateUser = [
 	authUser,
 	authAuthor,
+	validateRegister,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// validate and sanitize data
 		const userId = validateId(req.params.userId, 'user');
 
+		const { username, email } = req.body;
 		const author = req.body.author === 'on' ? true : false;
 
 		const updatedUser = await prisma.user.update({
@@ -69,8 +72,8 @@ const updateUser = [
 				id: userId,
 			},
 			data: {
-				email: req.body.email,
-				username: req.body.username,
+				email,
+				username,
 				author,
 			},
 			select: userSelect,
@@ -106,56 +109,51 @@ const deleteUser = [
 	}
 )];
 
-const getAllUserArticles = [
-		authUser,
-		asyncHandler(async (req, res) => {
-		const userId = validateId(req.params.userId, 'user');
+const getAllUserArticles = asyncHandler(async (req, res) => {
+	const userId = validateId(req.params.userId, 'user');
 
-		const { published } = req.query;
-		// Unpublished articles require authorization check
-		if (published === 'false' && !req.user?.author) {
-			return res.status(403).json({ message: "Forbidden access: Authors only"});
-		};
+	const { published } = req.query;
+	const isPublished = published !== 'false';
+	// Unpublished articles require authorization check
+	if (published === 'false' && !req.user?.author) {
+		return res.status(403).json({ message: "Forbidden access: Authors only"});
+	};
 
-		const userArticles = await prisma.article.findMany({
-			where: {
-				userId: userId,
-				published: published === 'false' ? false : true,
-			},
-			include: {
-				user: {
-					select: {
-						username: true
-					}
+	const userArticles = await prisma.article.findMany({
+		where: {
+			userId: userId,
+			published: isPublished,
+		},
+		include: {
+			user: {
+				select: {
+					username: true
 				}
 			}
-		});
+		}
+	});
 
-		res.status(200).json(userArticles);
-	}
-)];
+	res.status(200).json(userArticles);
+});
 
-const getAllUserComments = [
-		authUser,
-		asyncHandler(async (req, res) => {
-		const userId = validateId(req.params.userId, 'user');
+const getAllUserComments = asyncHandler(async (req, res) => {
+	const userId = validateId(req.params.userId, 'user');
 
-		const userComments = await prisma.comment.findMany({
-			where: {
-				userId: userId,
-			},
-			include: {
-				user: {
-					select: {
-						username: true
-					}
+	const userComments = await prisma.comment.findMany({
+		where: {
+			userId: userId,
+		},
+		include: {
+			user: {
+				select: {
+					username: true
 				}
 			}
-		});
+		}
+	});
 
-		res.json(userComments);
-	}
-)];
+	res.json(userComments);
+});
 
 module.exports = {
 	getAllUsers,

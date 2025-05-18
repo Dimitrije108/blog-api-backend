@@ -3,9 +3,8 @@ const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
 const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
-
-// TODO:
-// sanitize and validate form values
+const { validateArticle, validateComment } = require('../middleware/validation');
+const validationErrorHandler = require('../middleware/validationErrorHandler');
 
 // Articles
 // Get all published articles by default
@@ -35,17 +34,16 @@ const getAllArticles = asyncHandler(async (req, res) => {
 const createArticle = [
 	authUser,
 	authAuthor,
+	validateArticle,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// sanitize and validate form values
-		// MAKE SURE USER AND CATEGORY ID 1 EXIST BEFORE CALLING
-
-		const { title, text, categoryId } = req.body;
+		const { title, content, categoryId } = req.body;
 		const publish = req.body.publish === 'on' ? true : false;
 
 		const article = await prisma.article.create({
 			data: {
 				title,
-				text,
+				content,
 				published: publish,
 				userId: req.user.id,
 				categoryId,
@@ -78,8 +76,9 @@ const getArticle = asyncHandler(async (req, res) => {
 const updateArticle = [
 	authUser,
 	authAuthor,
+	validateArticle,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// sanitize and validate form values
 		const articleId = validateId(req.params.articleId, 'article');
 
 		const article = await prisma.article.findUniqueOrThrow({
@@ -95,7 +94,7 @@ const updateArticle = [
 			return res.status(403).json({ message: 'Forbidden: You can only update your own articles' })
 		};
 
-		const { title, text, categoryId } = req.body;
+		const { title, content, categoryId } = req.body;
 		const publish = req.body.publish === 'on' ? true : false;
 
 		const updatedArticle = await prisma.article.update({
@@ -104,7 +103,7 @@ const updateArticle = [
 			},
 			data: {
 				title,
-				text,
+				content,
 				published: publish,
 				categoryId,
 			}
@@ -165,21 +164,22 @@ const getAllComments = asyncHandler(async (req, res) => {
 
 const createComment = [
 	authUser,
+	validateComment,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// sanitize and validate
 		const articleId = validateId(req.params.articleId, 'article');
 
-		const { text } = req.body;
+		const { comment } = req.body;
 
-		const comment = await prisma.comment.create({
+		const userComment = await prisma.comment.create({
 			data: {
-				text,
+				comment,
 				userId: req.user.id,
 				articleId,
 			}
 		});
 
-		res.status(201).json(comment);
+		res.status(201).json(userComment);
 	}
 )];
 
@@ -205,28 +205,29 @@ const getComment = asyncHandler(async (req, res) => {
 
 const updateComment = [
 	authUser,
+	validateComment,
+	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		// sanitize and validate
 		const commentId = validateId(req.params.commentId, 'comment');
 		
-		const comment = await prisma.comment.findUniqueOrThrow({
+		const userComment = await prisma.comment.findUniqueOrThrow({
 			where: {
 				id: commentId
 			}
 		});
 		// Check if user updating the comment is the one who created it
-		if (comment.userId !== req.user.id) {
+		if (userComment.userId !== req.user.id) {
 			return res.status(403).json({ message: 'Forbidden: You can only edit your own comments' })
 		};
 
-		const { text } = req.body;
+		const { comment } = req.body;
 		
 		const updatedComment = await prisma.comment.update({
 			where: {
 				id: commentId
 			},
 			data: {
-				text
+				comment
 			}
 		});
 
