@@ -3,9 +3,9 @@ const router = Router();
 const controller = require('../../controllers/article');
 
 // Articles
-// Get all published articles
+// Get all published articles (unpublished with a query ?published=false)
 router.get('/', controller.getAllArticles);
-// Create and return article
+// Create article
 router.post('/', controller.createArticle);
 // Get article
 router.get('/:articleId', controller.getArticle);
