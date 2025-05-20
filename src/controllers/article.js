@@ -24,6 +24,11 @@ const getAllArticles = asyncHandler(async (req, res) => {
 				select: {
 					username: true
 				}
+			},
+			category: {
+				select: {
+					name: true
+				}
 			}
 		}
 	});
@@ -65,6 +70,11 @@ const getArticle = asyncHandler(async (req, res) => {
 			user: {
 				select: {
 					username: true,
+				}
+			},
+			category: {
+				select: {
+					name: true
 				}
 			}
 		}
