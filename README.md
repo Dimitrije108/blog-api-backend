@@ -162,7 +162,7 @@ Response from:`/api/v1/auth/login` and `/api/v1/auth/refresh` will return access
 ```
 
 Include an `Authorization` header with your JWT token:
-```json
+```
 GET /api/v1/private-route
 Authorization: Bearer <your-access-token>
 ```
