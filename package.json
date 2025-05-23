@@ -4,8 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon src/app.js",
-    "build": "npx prisma generate && npx prisma migrate deploy"
+    "start": "nodemon src/app.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
