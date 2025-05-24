@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const { validateRegister, validateLogin } = require('../middleware/validation');
 const validationErrorHandler = require('../middleware/validationErrorHandler');
 const { generateAccessToken, generateRefreshToken } = require('../utils/token');
+const ForbiddenError = require('../errors/ForbiddenError');
 
 const register = [
 	validateRegister,
@@ -30,38 +31,44 @@ const register = [
 const login = [
 	validateLogin,
 	validationErrorHandler,
-	(req, res, next) => {
+	asyncHandler(async (req, res, next) => {
 		passport.authenticate('local', 
 			{ session: false }, 
 			(err, user, info) => {
-				if (err || !user) {
-					return res.status(401).json({ 
-						message: info ? info.message : 'Authentication failed' 
-					});
-				};
+				try {
+					if (err) return next(err);
+					if (!user) {
+						return res.status(401).json({ 
+							error: 'UnauthorizedError',
+							message: info ? info.message : 'Authentication failed' 
+						});
+					};
 
-				const accessToken = generateAccessToken(user);
-				const refreshToken = generateRefreshToken(user);
+					const accessToken = generateAccessToken(user);
+					const refreshToken = generateRefreshToken(user);
 
-				res.json({ accessToken, refreshToken });
+					res.json({ accessToken, refreshToken });
+				} catch (error) {
+					next(error);
+				}
 			}
 		)(req, res, next);
-	}
+	})
 ];
 
-const refreshToken = (req, res) => {
+const refreshToken = asyncHandler(async (req, res) => {
 	const refreshToken = req.body.refreshToken;
 
 	if (!refreshToken) {
-		return res.status(403).json({ message: 'No refresh token provided' });
-	}
+		throw new ForbiddenError('No refresh token provided');
+	};
 
 	jwt.verify(
 		refreshToken,
 		process.env.JWT_REFRESH_SECRET,
 		async (err, payload) => {
 			if (err) {
-				return res.status(403).json({ message: 'Invalid or expired refresh token' });
+				throw new ForbiddenError('Invalid or expired refresh token');
 			}
 
 			const user = await prisma.user.findUniqueOrThrow({
@@ -74,7 +81,7 @@ const refreshToken = (req, res) => {
 			res.json({ accessToken, refreshToken });
 		}
 	);
-};
+});
 
 module.exports = {
 	register,

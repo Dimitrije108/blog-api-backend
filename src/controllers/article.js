@@ -5,6 +5,7 @@ const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
 const { validateArticle, validateComment } = require('../middleware/validation');
 const validationErrorHandler = require('../middleware/validationErrorHandler');
+const ForbiddenError = require('../errors/ForbiddenError');
 
 // Articles
 // Get all published articles by default
@@ -12,7 +13,7 @@ const getAllArticles = asyncHandler(async (req, res) => {
 	const { published } = req.query;
 	// Unpublished articles require authorization check
 	if (published === 'false' && !req.user?.author) {
-		return res.status(403).json({ message: "Forbidden access: Authors only"});
+		throw new ForbiddenError('Authors only');
 	};
 
 	const articles = await prisma.article.findMany({
@@ -101,7 +102,7 @@ const updateArticle = [
 		});
 		// Check if user updating the article is the one who created it
 		if (article.userId !== req.user.id) {
-			return res.status(403).json({ message: 'Forbidden: You can only update your own articles' })
+			throw new ForbiddenError('You can only update your own articles');
 		};
 
 		const { title, content, categoryId } = req.body;
@@ -139,7 +140,7 @@ const deleteArticle = [
 		});
 		// Check if user deleting the article is the one who created it
 		if (article.userId !== req.user.id) {
-			return res.status(403).json({ message: 'Forbidden: You can only delete your own articles' })
+			throw new ForbiddenError('You can only delete your own articles');
 		};
 
 		const deleteArticle = await prisma.article.delete({
@@ -227,7 +228,7 @@ const updateComment = [
 		});
 		// Check if user updating the comment is the one who created it
 		if (userComment.userId !== req.user.id) {
-			return res.status(403).json({ message: 'Forbidden: You can only edit your own comments' })
+			throw new ForbiddenError('You can only edit your own comments');
 		};
 
 		const { comment } = req.body;
@@ -257,7 +258,7 @@ const deleteComment = [
 		});
 		// Check if user deleting the comment is the one who created it
 		if (comment.userId !== req.user.id) {
-			return res.status(403).json({ message: 'Forbidden: You can only delete your own comments' })
+			throw new ForbiddenError('You can only delete your own comments');
 		};
 
 		const deleteComment = await prisma.comment.delete({

@@ -6,6 +6,7 @@ const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
 const { validateRegister } = require('../middleware/validation');
 const validationErrorHandler = require('../middleware/validationErrorHandler');
+const ForbiddenError = require('../errors/ForbiddenError');
 
 const userSelect = {
 	id: true,
@@ -96,7 +97,7 @@ const deleteUser = [
 		});
 
 		if (user.author) {
-			return res.status(403).json({ message: "Forbidden: Cannot delete author" });
+			throw new ForbiddenError('Cannot delete author');
 		};
 
 		await prisma.user.delete({
@@ -116,7 +117,7 @@ const getAllUserArticles = asyncHandler(async (req, res) => {
 	const isPublished = published !== 'false';
 	// Unpublished articles require authorization check
 	if (published === 'false' && !req.user?.author) {
-		return res.status(403).json({ message: "Forbidden access: Authors only"});
+		throw new ForbiddenError('Authors only');
 	};
 
 	const userArticles = await prisma.article.findMany({
