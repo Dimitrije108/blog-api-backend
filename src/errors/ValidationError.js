@@ -1,9 +1,12 @@
 class ValidationError extends Error {
-	constructor(message = 'Validation failed', errors) {
+	constructor(message = 'Validation failed', errors = []) {
 		super(message);
 		this.statusCode = 400;
 		this.name = 'ValidationError';
-		this.errors = errors || [{ msg: message }];
+		this.details = errors.map(err => ({
+			field: err.path,
+			message: err.msg,
+		}));
 	}
 };
 

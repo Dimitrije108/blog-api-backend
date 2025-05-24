@@ -65,7 +65,10 @@ const deleteCategory = [
 		});
 		// Check if category has articles assigned
 		if (articleCount > 0) {
-			return res.status(400).json({ message: 'Cannot delete category: It has articles assigned to it' })
+			return res.status(400).json({ 
+				error: 'CategoryHasArticlesError',
+				message: 'Cannot delete category because it has articles assigned.' 
+			})
 		};
 
 		const deletedCategory = await prisma.category.delete({
