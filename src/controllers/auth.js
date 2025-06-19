@@ -57,30 +57,27 @@ const login = [
 ];
 
 const refreshToken = asyncHandler(async (req, res) => {
-	const refreshToken = req.body.refreshToken;
+	const refreshToken = req.body.oldRefreshToken;
 
 	if (!refreshToken) {
 		throw new ForbiddenError('No refresh token provided');
 	};
 
-	jwt.verify(
-		refreshToken,
-		process.env.JWT_REFRESH_SECRET,
-		async (err, payload) => {
-			if (err) {
-				throw new ForbiddenError('Invalid or expired refresh token');
-			}
+	let payload;
+	try {
+		payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+	} catch(error) {
+		throw new ForbiddenError('Invalid or expired refresh token');
+	};
 
-			const user = await prisma.user.findUniqueOrThrow({
-				where: { id: payload.id },
-			});
-			// Create new tokens
-			const accessToken = generateAccessToken(user);
-			const refreshToken = generateRefreshToken(user);
+	const user = await prisma.user.findUniqueOrThrow({
+		where: { id: payload.id },
+	});
 
-			res.json({ accessToken, refreshToken });
-		}
-	);
+	const accessToken = generateAccessToken(user);
+	const newRefreshToken = generateRefreshToken(user);
+
+	res.json({ accessToken, refreshToken: newRefreshToken });
 });
 
 module.exports = {
