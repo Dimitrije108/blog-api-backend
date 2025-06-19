@@ -5,7 +5,7 @@ const validationErrorHandler = (req, res, next) => {
 	const errors = validationResult(req);
 
 	if (!errors.isEmpty()) {
-		throw new ValidationError('Validation failer', errors.array());
+		throw new ValidationError('Validation failed', errors.array());
 	};
 
 	next();
