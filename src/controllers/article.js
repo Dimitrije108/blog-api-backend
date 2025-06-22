@@ -127,6 +127,27 @@ const updateArticle = [
 	})
 ];
 
+const updatePublishStatus = [
+	authUser,
+	authAuthor,
+	asyncHandler(async (req, res) => {
+		const articleId = validateId(req.params.articleId, 'article');
+		const publish = req.body.publish;
+		const publishMsg = publish ? "published" : "unpublished";
+
+		await prisma.article.update({
+			where: {
+				id: articleId
+			},
+			data: {
+				published: publish
+			}
+		});
+
+		res.status(200).json({ message: `Article ${publishMsg}` });
+	})
+];
+
 const deleteArticle = [
 	authUser,
 	authAuthor,
@@ -279,6 +300,7 @@ module.exports = {
 	createArticle,
 	getArticle,
 	updateArticle,
+	updatePublishStatus,
 	deleteArticle,
 	getAllComments,
 	createComment,

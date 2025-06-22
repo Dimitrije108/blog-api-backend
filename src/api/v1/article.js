@@ -11,6 +11,8 @@ router.post('/', controller.createArticle);
 router.get('/:articleId', controller.getArticle);
 // Update article
 router.put('/:articleId', controller.updateArticle);
+// Update article publish status
+router.patch('/:articleId', controller.updatePublishStatus);
 // Delete article
 router.delete('/:articleId', controller.deleteArticle);
 // Comments
