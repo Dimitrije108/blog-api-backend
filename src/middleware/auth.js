@@ -9,7 +9,17 @@ const authAuthor = (req, res, next) => {
 	return res.status(403).json({ message: "Forbiden access: Authors only"});
 };
 
+const optionalAuth = (req, res, next) => {
+	passport.authenticate("jwt", { session: false }, (err, user) => {
+		if (user) {
+			req.user = user;
+		};
+		next();
+	})(req, res, next);
+};
+
 module.exports = {
 	authUser,
 	authAuthor,
+	optionalAuth,
 };

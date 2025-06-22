@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
-const { authUser, authAuthor } = require('../middleware/auth');
+const { authUser, authAuthor, optionalAuth } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
 const { validateArticle, validateComment } = require('../middleware/validation');
 const validationErrorHandler = require('../middleware/validationErrorHandler');
@@ -9,33 +9,37 @@ const ForbiddenError = require('../errors/ForbiddenError');
 
 // Articles
 // Get all published articles by default
-const getAllArticles = asyncHandler(async (req, res) => {
-	const { published } = req.query;
-	// Unpublished articles require authorization check
-	if (published === 'false' && !req.user?.author) {
-		throw new ForbiddenError('Authors only');
-	};
+const getAllArticles = [
+	optionalAuth,
+	asyncHandler(async (req, res) => {
+		const { published } = req.query;
 
-	const articles = await prisma.article.findMany({
-		where: {
-			published: published === 'false' ? false : true
-		},
-		include: {
-			user: {
-				select: {
-					username: true
-				}
+		// Unpublished articles require authorization check
+		if (published === "false" && !req.user?.author) {
+			throw new ForbiddenError('Authors only');
+		};
+
+		const articles = await prisma.article.findMany({
+			where: {
+				published: published === 'false' ? false : true
 			},
-			category: {
-				select: {
-					name: true
+			include: {
+				user: {
+					select: {
+						username: true
+					}
+				},
+				category: {
+					select: {
+						name: true
+					}
 				}
 			}
-		}
-	});
+		});
 
-	res.status(200).json(articles);
-});
+		res.status(200).json(articles);
+	})
+];
 
 const createArticle = [
 	authUser,
@@ -43,22 +47,21 @@ const createArticle = [
 	validateArticle,
 	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		const { title, content, categoryId } = req.body;
-		const publish = req.body.publish === 'on' ? true : false;
+		const { title, content, categoryId, published } = req.body;
 
 		const article = await prisma.article.create({
 			data: {
 				title,
 				content,
-				published: publish,
+				published,
 				userId: req.user.id,
-				categoryId,
+				categoryId: Number(categoryId),
 			}
 		});
 
 		res.status(201).json(article);
-	}
-)];
+	})
+];
 
 const getArticle = asyncHandler(async (req, res) => {
 	const articleId = validateId(req.params.articleId, 'article');
@@ -121,8 +124,8 @@ const updateArticle = [
 		});
 
 		res.status(200).json(updatedArticle);
-	}
-)];
+	})
+];
 
 const deleteArticle = [
 	authUser,
@@ -150,8 +153,8 @@ const deleteArticle = [
 		});
 
 		res.status(200).json(deleteArticle);
-	}
-)];
+	})
+];
 // Comments
 const getAllComments = asyncHandler(async (req, res) => {
 	const articleId = validateId(req.params.articleId, 'article');
@@ -191,8 +194,8 @@ const createComment = [
 		});
 
 		res.status(201).json(userComment);
-	}
-)];
+	})
+];
 
 const getComment = asyncHandler(async (req, res) => {
 	const commentId = validateId(req.params.commentId, 'comment');
@@ -243,8 +246,8 @@ const updateComment = [
 		});
 
 		res.status(200).json(updatedComment);
-	}
-)];
+	})
+];
 
 const deleteComment = [
 	authUser,
@@ -268,8 +271,8 @@ const deleteComment = [
 		});
 
 		res.status(200).json(deleteComment);
-	}
-)];
+	})
+];
 
 module.exports = {
 	getAllArticles,
