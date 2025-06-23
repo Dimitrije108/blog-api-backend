@@ -3,10 +3,12 @@ const router = Router();
 const controller = require('../../controllers/article');
 
 // Articles
-// Get all published articles (unpublished with a query ?published=false)
+// Get all articles
 router.get('/', controller.getAllArticles);
 // Create article
 router.post('/', controller.createArticle);
+// Get all published articles
+router.get('/published', controller.getAllPublishedArticles);
 // Get article
 router.get('/:articleId', controller.getArticle);
 // Update article

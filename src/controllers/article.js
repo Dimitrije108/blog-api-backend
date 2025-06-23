@@ -1,28 +1,24 @@
 const asyncHandler = require('express-async-handler');
 const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
-const { authUser, authAuthor, optionalAuth } = require('../middleware/auth');
+const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
 const { validateArticle, validateComment } = require('../middleware/validation');
 const validationErrorHandler = require('../middleware/validationErrorHandler');
 const ForbiddenError = require('../errors/ForbiddenError');
 
 // Articles
-// Get all published articles by default
+// Get both published and unpublished articles
 const getAllArticles = [
-	optionalAuth,
+	authUser,
+	authAuthor,
 	asyncHandler(async (req, res) => {
-		const { published } = req.query;
-
-		// Unpublished articles require authorization check
-		if (published === "false" && !req.user?.author) {
-			throw new ForbiddenError('Authors only');
-		};
-
 		const articles = await prisma.article.findMany({
-			where: {
-				published: published === 'false' ? false : true
-			},
+			orderBy: [
+				{
+					createdAt: "desc",
+				},
+			],
 			include: {
 				user: {
 					select: {
@@ -62,6 +58,33 @@ const createArticle = [
 		res.status(201).json(article);
 	})
 ];
+
+const getAllPublishedArticles = asyncHandler(async (req, res) => {
+	const publishedArticles = await prisma.article.findMany({
+		where: {
+			published: true
+		},
+		orderBy: [
+			{
+				createdAt: "desc",
+			},
+		],
+		include: {
+			user: {
+				select: {
+					username: true
+				}
+			},
+			category: {
+				select: {
+					name: true
+				}
+			}
+		}
+	});
+
+	res.status(200).json(publishedArticles);
+});
 
 const getArticle = asyncHandler(async (req, res) => {
 	const articleId = validateId(req.params.articleId, 'article');
@@ -298,6 +321,7 @@ const deleteComment = [
 module.exports = {
 	getAllArticles,
 	createArticle,
+	getAllPublishedArticles,
 	getArticle,
 	updateArticle,
 	updatePublishStatus,
