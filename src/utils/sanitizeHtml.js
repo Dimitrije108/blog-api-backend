@@ -7,7 +7,8 @@ const cleanHTML = (dirtyHtml) => {
       'blockquote', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'ul', 'ol', 'li', 'dl', 'dt', 'dd',
       'img', 'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'div', 'span', 'code'
+      'div', 'span', 'code',
+      'hr'
     ],
     allowedAttributes: {
       'a': ['href', 'title', 'target', 'rel', 'style'],
