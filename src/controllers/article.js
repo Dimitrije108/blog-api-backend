@@ -131,8 +131,7 @@ const updateArticle = [
 			throw new ForbiddenError('You can only update your own articles');
 		};
 
-		const { title, content, categoryId } = req.body;
-		const publish = req.body.publish === 'on' ? true : false;
+		const { title, content, categoryId, published } = req.body;
 
 		const updatedArticle = await prisma.article.update({
 			where: {
@@ -141,8 +140,8 @@ const updateArticle = [
 			data: {
 				title,
 				content,
-				published: publish,
-				categoryId,
+				published,
+				categoryId: Number(categoryId),
 			}
 		});
 
