@@ -4,7 +4,10 @@ const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const { authUser, authAuthor } = require('../middleware/auth');
 const validateId = require('../utils/validateId');
-const { validateRegister } = require('../middleware/validation');
+const { 
+	validateRegister, 
+	validateUserUpdate 
+} = require('../middleware/validation');
 const validationErrorHandler = require('../middleware/validationErrorHandler');
 const ForbiddenError = require('../errors/ForbiddenError');
 
@@ -13,11 +16,22 @@ const userSelect = {
 	email: true,
 	username: true,
 	author: true,
+	comments: true,
 };
 
 const getAllUsers = asyncHandler(async (req, res) => {
 	const users = await prisma.user.findMany({
-		select: userSelect,
+		select: { 
+			...userSelect,
+			articles: {
+				select: {
+					id: true,
+					title: true,
+					published: true,
+					createdAt: true,
+				}
+			},
+		}
 	});
 	res.status(200).json(users);
 });
@@ -28,9 +42,8 @@ const createUser = [
 	validateRegister,
 	validationErrorHandler,
 	asyncHandler(async (req, res) => {
-		const { username, email } = req.body;
+		const { username, email, author } = req.body;
 		const hashedPass = await bcrypt.hash(req.body.password, 10);
-		const author = req.body.author === 'on' ? true : false;
 
 		const user = await prisma.user.create({
 			data: {
@@ -60,13 +73,12 @@ const getUser = asyncHandler(async (req, res) => {
 const updateUser = [
 	authUser,
 	authAuthor,
-	validateRegister,
+	validateUserUpdate,
 	validationErrorHandler,
 	asyncHandler(async (req, res) => {
 		const userId = validateId(req.params.userId, 'user');
 
-		const { username, email } = req.body;
-		const author = req.body.author === 'on' ? true : false;
+		const { username, email, author } = req.body;
 
 		const updatedUser = await prisma.user.update({
 			where: {
