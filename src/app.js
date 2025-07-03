@@ -19,7 +19,15 @@ app.use("/api/v1/auth", routes.auth);
 app.use("/api/v1/users", routes.user);
 app.use("/api/v1/articles", routes.article);
 app.use("/api/v1/categories", routes.category);
+app.use("/api/v1/comments", routes.comment);
 
+// 404 handler for unmatched routes
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+  });
+});
 app.use(prismaErrorHandler);
 app.use(errorHandler);
 
