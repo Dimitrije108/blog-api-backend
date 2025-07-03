@@ -28,6 +28,14 @@ const validateLogin = [
 		.notEmpty().withMessage('Password cannot be empty'),
 ];
 
+const validateUserUpdate = [
+	body('username').trim()
+		.isAlpha().withMessage('Name must only contain letters')
+		.isLength({ min: 1, max: 30 }).withMessage('Name must be between 1 and 30 characters'),
+	body('email').normalizeEmail()
+		.isEmail().withMessage('Email must be a valid email address'),
+];
+
 const validateArticle = [
 	body('title').trim()
 		.isLength({ min: 1, max: 70 }).withMessage('Title must be between 1 and 70 characters long'),
@@ -49,6 +57,7 @@ const validateCategory = [
 module.exports = {
 	validateRegister,
 	validateLogin,
+	validateUserUpdate,
 	validateArticle,
 	validateComment,
 	validateCategory,
