@@ -20,6 +20,7 @@ app.use("/api/v1/users", routes.user);
 app.use("/api/v1/articles", routes.article);
 app.use("/api/v1/categories", routes.category);
 app.use("/api/v1/comments", routes.comment);
+app.use("/api/v1/dashboard", routes.dashboard);
 
 // 404 handler for unmatched routes
 app.use((req, res) => {
