@@ -65,7 +65,7 @@ const deleteCategory = [
 		});
 		// Check if category has articles assigned
 		if (articleCount > 0) {
-			return res.status(400).json({ 
+			return res.status(409).json({ 
 				error: 'CategoryHasArticlesError',
 				message: 'Cannot delete category because it has articles assigned.' 
 			})
