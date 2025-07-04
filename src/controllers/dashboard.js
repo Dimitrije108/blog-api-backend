@@ -3,29 +3,30 @@ const { PrismaClient } = require('../../generated/prisma');
 const prisma = new PrismaClient();
 const { authUser, authAuthor } = require('../middleware/auth');
 
-// TODO:
-// - Optimization: instead of fetching all items do:
-//  add take: 5, property to get only last 5 items
-//  use prisma.article.count(); to get article count
-
 // Dashboard
 // Get colleciton of data needed for CMS dashboard
 const getDashboard = [
 	authUser,
 	authAuthor,
 	asyncHandler(async (req, res) => {
-		// Get articles
-		const articles = await prisma.article.findMany({
-			orderBy: [
-				{
-					createdAt: "desc",
-				},
-			],
-			select: {
-				id: true,
-				title: true,
+		// Get article count
+		const articleCount = await prisma.article.count();
+		// Get the latest article
+		const latestArticle = await prisma.article.findFirst({
+			orderBy: {
+				createdAt: "desc",
+			},
+		});
+		// Get number of published articles
+		const publishedCount = await prisma.article.count({
+			where: {
 				published: true,
-				createdAt: true,
+			},
+		});
+		// Get number of unpublished articles
+		const unpublishedCount = await prisma.article.count({
+			where: {
+				published: false,
 			},
 		});
 		// Get categories
@@ -55,26 +56,43 @@ const getDashboard = [
 				author: true,
 			},
 		});
-		// Get comments
-		const comments = await prisma.comment.findMany({
-			orderBy: [
-				{
-					createdAt: "desc",
-				},
-			],
+		// Get authors
+		const authors = await prisma.user.findMany({
+			where: {
+				author: true,
+			},
 			select: {
 				id: true,
-				comment: true,
-				createdAt: true,
+				author: true,
+			},
+		});
+		// Get comment count
+		const commentCount = await prisma.comment.count();
+		// Get the latest comment
+		const latestComment = await prisma.article.findFirst({
+			orderBy: {
+				createdAt: "desc",
+			},
+			include: {
+				user: {
+					select: {
+						username: true,
+					},
+				},
 			},
 		});
 
-		res.status(200).json({ 
-			articles,
+		res.status(200).json({
+			articleCount,
+			latestArticle,
+			publishedCount,
+			unpublishedCount,
 			categories,
 			topCategory,
 			users,
-			comments,
+			authors,
+			commentCount,
+			latestComment,
 		});
 	})
 ];
