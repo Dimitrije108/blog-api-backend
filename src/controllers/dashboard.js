@@ -14,6 +14,7 @@ const getDashboard = [
 	authUser,
 	authAuthor,
 	asyncHandler(async (req, res) => {
+		// Get articles
 		const articles = await prisma.article.findMany({
 			orderBy: [
 				{
@@ -27,16 +28,34 @@ const getDashboard = [
 				createdAt: true,
 			},
 		});
-
+		// Get categories
 		const categories = await prisma.category.findMany();
+		// Get most used category
+		const mostUserCategories = await prisma.article.groupBy({
+			by: ["categoryId"],
+			_count: {
+				categoryId: true,
+			},
+			orderBy: {
+				_count: {
+					categoryId: "desc",
+				},
+			},
+		});
 
+		const topCategory = await prisma.category.findUnique({
+			where: { 
+				id:  mostUserCategories[0].categoryId
+			},
+		});
+		// Get users
 		const users = await prisma.user.findMany({
 			select: {
 				id: true,
 				author: true,
 			},
 		});
-
+		// Get comments
 		const comments = await prisma.comment.findMany({
 			orderBy: [
 				{
@@ -50,7 +69,13 @@ const getDashboard = [
 			},
 		});
 
-		res.status(200).json({ articles, categories, users, comments });
+		res.status(200).json({ 
+			articles,
+			categories,
+			topCategory,
+			users,
+			comments,
+		});
 	})
 ];
 
