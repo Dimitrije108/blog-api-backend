@@ -69,7 +69,7 @@ const getDashboard = [
 		// Get comment count
 		const commentCount = await prisma.comment.count();
 		// Get the latest comment
-		const latestComment = await prisma.article.findFirst({
+		const latestComment = await prisma.comment.findFirst({
 			orderBy: {
 				createdAt: "desc",
 			},
